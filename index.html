@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#040207" />
+<title>圣诞树 · 今夜幸运号码</title>
+<meta name="description" content="一棵由星尘长成的圣诞树，树脚藏着一组只属于你的幸运号码。" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="圣诞树 · 今夜幸运号码" />
+<meta property="og:description" content="送你一棵圣诞树，今夜幸运号码是——" />
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #040207;
+    color: #fff;
+    font-family: "Songti SC", "STSong", "Noto Serif SC", Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #scene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  #scene.dragging { cursor: grabbing; }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 68% at 52% 46%, transparent 42%, rgba(3, 1, 6, 0.34) 82%, rgba(2, 1, 4, 0.72) 100%),
+      linear-gradient(180deg, rgba(4, 2, 7, 0.34) 0%, transparent 20%, transparent 76%, rgba(2, 1, 4, 0.55) 100%);
+    z-index: 1;
+  }
+
+  .ui {
+    position: fixed;
+    left: 5vw;
+    top: 42vh;
+    z-index: 3;
+    pointer-events: none;
+    user-select: none;
+    animation: uiIn 2.4s cubic-bezier(0.22, 0.8, 0.24, 1) 0.6s both;
+  }
+
+  .ui h1 {
+    margin: 0;
+    font-family: "Edwardian Script ITC", "Palace Script MT", "Great Vibes", "Segoe Script", cursive;
+    font-weight: 400;
+    font-size: clamp(42px, 5vw, 84px);
+    line-height: 0.96;
+    letter-spacing: 0.01em;
+    color: #fff8fc;
+    text-shadow:
+      0 0 10px rgba(255, 220, 240, 0.75),
+      0 0 26px rgba(255, 150, 200, 0.55),
+      0 0 58px rgba(255, 80, 150, 0.32);
+    white-space: nowrap;
+  }
+
+  .ui .rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: min(240px, 34vw);
+    margin: 10px 0 9px 6px;
+    opacity: 0.55;
+  }
+
+  .ui .rule::before {
+    content: "";
+    height: 1px;
+    width: 54px;
+    background: linear-gradient(90deg, rgba(255, 180, 215, 0.9), rgba(255, 180, 215, 0));
+  }
+
+  .ui .rule i {
+    width: 4px;
+    height: 4px;
+    transform: rotate(45deg);
+    background: #ffd7ea;
+    box-shadow: 0 0 10px rgba(255, 150, 200, 0.9);
+  }
+
+  .ui p {
+    margin: 0 0 0 6px;
+    font-size: clamp(10px, 0.94vw, 13px);
+    letter-spacing: 0.46em;
+    color: rgba(255, 226, 240, 0.52);
+    text-shadow: 0 0 16px rgba(255, 140, 190, 0.35);
+    white-space: nowrap;
+  }
+
+  .hint {
+    position: fixed;
+    left: 50%;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 3;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.34em;
+    text-indent: 0.34em;
+    color: rgba(232, 214, 228, 0.3);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    transition: opacity 1.2s ease 3s;
+  }
+
+  .hint.fade { opacity: 0.1; }
+
+  .lucky {
+    position: fixed;
+    left: 50%;
+    bottom: max(42px, calc(env(safe-area-inset-bottom) + 30px));
+    transform: translateX(-50%);
+    z-index: 4;
+    width: min(560px, calc(100vw - 30px));
+    padding: 13px 20px 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 208, 168, 0.2);
+    background:
+      radial-gradient(120% 150% at 50% 0%, rgba(255, 190, 220, 0.13), transparent 58%),
+      linear-gradient(180deg, rgba(26, 10, 22, 0.62), rgba(7, 3, 10, 0.8));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 232, 210, 0.09),
+      0 18px 52px rgba(0, 0, 0, 0.5),
+      0 0 52px rgba(255, 120, 180, 0.1);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(12px) saturate(130%);
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: #fff;
+    opacity: 0;
+    animation: luckyIn 1.7s cubic-bezier(0.22, 0.8, 0.24, 1) 2.5s forwards;
+  }
+
+  .lucky-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-indent: 0.32em;
+    color: rgba(247, 218, 172, 0.86);
+    text-shadow: 0 0 16px rgba(255, 190, 120, 0.35);
+  }
+
+  .lucky-head i {
+    flex: 1;
+    height: 1px;
+    max-width: 72px;
+    background: linear-gradient(90deg, rgba(247, 218, 172, 0), rgba(247, 218, 172, 0.55));
+  }
+
+  .lucky-head i:last-child {
+    transform: scaleX(-1);
+  }
+
+  .lucky-balls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(5px, 1.1vw, 9px);
+    margin: 11px 0 8px;
+  }
+
+  .ball {
+    width: clamp(31px, 6.6vw, 39px);
+    height: clamp(31px, 6.6vw, 39px);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    position: relative;
+    font-family: "DIN Alternate", "Bahnschrift", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(13px, 3.2vw, 16px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    background: radial-gradient(circle at 33% 26%, #ffb2bd 0%, #f45a70 30%, #bb1734 66%, #5c0718 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+      inset 0 -6px 10px rgba(70, 0, 14, 0.5),
+      0 5px 16px rgba(200, 30, 60, 0.32),
+      0 0 20px rgba(255, 90, 130, 0.18);
+    text-shadow: 0 1px 3px rgba(70, 0, 12, 0.65);
+  }
+
+  .ball.blue {
+    background: radial-gradient(circle at 33% 26%, #c6e6ff 0%, #5aa8ff 32%, #1a5ccb 68%, #061b56 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+      inset 0 -6px 10px rgba(0, 10, 60, 0.55),
+      0 5px 16px rgba(30, 90, 210, 0.32),
+      0 0 20px rgba(90, 160, 255, 0.2);
+    text-shadow: 0 1px 3px rgba(0, 8, 50, 0.7);
+  }
+
+  .ball::after {
+    content: "";
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    top: 9%;
+    height: 40%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 72%);
+    pointer-events: none;
+  }
+
+  .ball span { position: relative; z-index: 1; }
+
+  .ball.plus {
+    width: auto;
+    height: auto;
+    background: none;
+    box-shadow: none;
+    color: rgba(247, 218, 172, 0.6);
+    font-size: 15px;
+    font-weight: 400;
+    margin: 0 1px;
+    text-shadow: none;
+  }
+
+  .ball.plus::after { display: none; }
+
+  .ball.roll { animation: ballRoll 0.52s cubic-bezier(0.3, 0.9, 0.4, 1) both; }
+
+  .lucky-sub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: rgba(236, 214, 226, 0.4);
+  }
+
+  .lucky-sub i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(247, 218, 172, 0.45);
+  }
+
+  .lucky-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .lucky-btn {
+    appearance: none;
+    min-height: 34px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(247, 218, 172, 0.26);
+    background: rgba(255, 236, 220, 0.045);
+    color: rgba(255, 238, 222, 0.82);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    cursor: pointer;
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  }
+
+  .lucky-btn:hover, .lucky-btn:focus-visible {
+    background: rgba(255, 214, 168, 0.14);
+    border-color: rgba(255, 222, 180, 0.55);
+    color: #ffe9c9;
+    outline: none;
+  }
+
+  .lucky-btn:active { transform: scale(0.96); }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: max(214px, calc(env(safe-area-inset-bottom) + 202px));
+    transform: translate(-50%, 8px);
+    z-index: 5;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(18, 8, 16, 0.86);
+    border: 1px solid rgba(255, 214, 168, 0.26);
+    color: #ffe8ca;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @keyframes luckyIn {
+    from { opacity: 0; transform: translate(-50%, 18px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  @keyframes ballRoll {
+    0% { opacity: 0.25; transform: translateY(7px) scale(0.72) rotate(-16deg); }
+    60% { opacity: 1; transform: translateY(-2px) scale(1.06) rotate(3deg); }
+    100% { opacity: 1; transform: none; }
+  }
+
+  @keyframes uiIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (max-width: 760px) {
+  @media (max-width: 760px) {
+    .ui {
+      left: 6vw;
+      right: auto;
+      top: max(4.2vh, calc(env(safe-area-inset-top) + 12px));
+      bottom: auto;
+      text-align: left;
+    }
+    .ui h1 { font-size: clamp(34px, 10.5vw, 54px); }
+    .ui .rule { width: min(150px, 38vw); margin: 7px 0 7px 3px; }
+    .ui p { margin: 0 0 0 3px; font-size: 9.5px; letter-spacing: 0.4em; }
+    .lucky {
+      width: calc(100vw - 22px);
+      padding: 12px 10px 11px;
+      bottom: max(36px, calc(env(safe-area-inset-bottom) + 26px));
+    }
+    .lucky-head { font-size: 10px; letter-spacing: 0.24em; text-indent: 0.24em; }
+    .lucky-actions { gap: 6px; margin-top: 9px; }
+    .lucky-btn { min-height: 32px; padding: 0 12px; font-size: 10px; letter-spacing: 0.08em; }
+    .toast {
+      bottom: max(212px, calc(env(safe-area-inset-bottom) + 200px));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui { animation: none; }
+    .lucky { animation: none; opacity: 1; transform: translateX(-50%); }
+  }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="粉白星尘电子圣诞树动画"></canvas>
+<div class="vignette"></div>
+
+<div class="ui">
+  <h1>Merry Christmas</h1>
+  <div class="rule"><i></i></div>
+  <p>圣诞快乐 · 平安喜乐</p>
+</div>
+<div class="hint" id="hint">拖动旋转 · 点击许愿</div>
+
+<section class="lucky" id="lucky" aria-label="幸运彩票码">
+  <div class="lucky-head"><i></i><span>今夜 · 幸运彩票码</span><i></i></div>
+  <div class="lucky-balls" id="luckyBalls"></div>
+  <div class="lucky-sub"><span id="luckySerial">第 2026124 期</span><i></i><span>仅供娱乐 · 理性购彩</span></div>
+  <div class="lucky-actions">
+    <button class="lucky-btn" id="rerollBtn" type="button">再编一组</button>
+    <button class="lucky-btn" id="copyBtn" type="button">复制号码</button>
+    <button class="lucky-btn" id="shareBtn" type="button">分享这棵树</button>
+  </div>
+</section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('scene');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const bloom = document.createElement('canvas');
+  const bctx = bloom.getContext('2d');
+  const bgCanvas = document.createElement('canvas');
+  const bgCtx = bgCanvas.getContext('2d');
+  const hint = document.getElementById('hint');
+  const luckyEl = document.getElementById('lucky');
+  const ballsEl = document.getElementById('luckyBalls');
+  const serialEl = document.getElementById('luckySerial');
+  const toastEl = document.getElementById('toast');
+  const rerollBtn = document.getElementById('rerollBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const shareBtn = document.getElementById('shareBtn');
+
+  const TAU = Math.PI * 2;
+  const rand = (min, max) => min + Math.random() * (max - min);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const smooth = (t) => t * t * (3 - 2 * t);
+
+  const CAM_Z = 3.0;
+  const FOCAL = 2.6;
+  const TREE_BOTTOM = -0.52;
+  const TREE_HEIGHT = 1.07;
+  const TREE_RADIUS = 0.40;
+  const GROUND_Y = -0.53;
+  const GROUND_R = 1.12;
+  const START = performance.now();
+  const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const AUTO_SPIN = REDUCED ? 0.012 : 0.05;
+
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  let DPR = 1;
+  let scale = 500;
+  let cx = W / 2;
+  let cy = H * 0.40;
+
+  let points = [];
+  let stars = [];
+  let snow = [];
+  let wishes = [];
+
+  let rotY = 0;
+  let tilt = 0.30;
+  let spinVel = 0;
+  let dragging = false;
+  let moved = false;
+  let lastX = 0;
+  let lastY = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+  let flash = 0;
+
+  const hueSprites = new Map();
+  let snowSprite = null;
+
+  function hueSprite(hue, sat, light) {
+    const hq = ((Math.round(hue / 6) * 6) % 360 + 360) % 360;
+    const sq = Math.round(sat * 20) / 20;
+    const lq = Math.round(light * 20) / 20;
+    const key = hq + ':' + sq + ':' + lq;
+    let c = hueSprites.get(key);
+    if (c) return c;
+
+    c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d');
+    const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grd.addColorStop(0, `hsla(${hq},${Math.min(100, sq * 45)}%,98%,1)`);
+    grd.addColorStop(0.13, `hsla(${hq},${sq * 100}%,${Math.min(97, lq * 100 + 8)}%,0.95)`);
+    grd.addColorStop(0.34, `hsla(${hq},${sq * 100}%,${lq * 100}%,0.46)`);
+    grd.addColorStop(0.64, `hsla(${hq},${sq * 100}%,${lq * 100}%,0.12)`);
+    grd.addColorStop(1, `hsla(${hq},${sq * 100}%,${lq * 100}%,0)`);
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 64, 64);
+    hueSprites.set(key, c);
+    return c;
+  }
+
+  function getSnowSprite() {
+    if (snowSprite) return snowSprite;
+    snowSprite = document.createElement('canvas');
+    snowSprite.width = snowSprite.height = 32;
+    const g = snowSprite.getContext('2d');
+    const grd = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grd.addColorStop(0, 'rgba(255,255,255,1)');
+    grd.addColorStop(0.28, 'rgba(255,236,246,0.85)');
+    grd.addColorStop(0.6, 'rgba(255,214,235,0.3)');
+    grd.addColorStop(1, 'rgba(255,205,230,0)');
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 32, 32);
+    return snowSprite;
+  }
+
+  function starColor() {
+    const r = Math.random();
+    if (r < 0.52) return [330, 0.08, 0.95, 0.78];
+    if (r < 0.84) return [332, 0.5, 0.82, 0.88];
+    return [340, 0.78, 0.68, 1];
+  }
+
+  function buildScene() {
+    points = [];
+
+    const TIERS = 8;
+    const tierGap = TREE_HEIGHT / TIERS;
+
+    for (let tier = 0; tier < TIERS; tier++) {
+      const t = tier / (TIERS - 1);
+      const y0 = TREE_BOTTOM + 0.02 + t * (TREE_HEIGHT - 0.02);
+      const rad = TREE_RADIUS * Math.pow(1 - t, 0.85) + 0.006;
+      const branches = Math.max(8, Math.round(18 - t * 8));
+
+      for (let b = 0; b < branches; b++) {
+        const ang = b * (TAU / branches) + tier * 0.55 + rand(-0.1, 0.1);
+        const len = rad * rand(0.76, 1.05);
+        const droop = rand(0.045, 0.075);
+        const count = Math.round(18 + len * 70);
+
+        for (let i = 0; i < count; i++) {
+          const s = i / count;
+          const rr = len * s * rand(0.96, 1.04);
+          const col = starColor();
+          points.push({
+            x: Math.cos(ang) * rr,
+            y: y0 - droop * Math.pow(s, 1.7) + rand(-0.009, 0.009),
+            z: Math.sin(ang) * rr,
+            h: col[0],
+            s: col[1],
+            l: col[2],
+            size: rand(0.0055, 0.0105) * (s > 0.9 ? 1.35 : 1),
+            alpha: rand(0.45, 0.95) * col[3],
+            phase: rand(0, TAU),
+            speed: rand(1.1, 3.0),
+            delay: t * 0.42,
+            ground: false
+          });
+        }
+
+        for (let k = 0; k < 3; k++) {
+          points.push({
+            x: Math.cos(ang) * len * rand(0.96, 1.05),
+            y: y0 - droop + rand(-0.02, 0.01),
+            z: Math.sin(ang) * len * rand(0.96, 1.05),
+            h: 332,
+            s: 0.35,
+            l: 0.94,
+            size: rand(0.014, 0.024),
+            alpha: 0.95,
+            phase: rand(0, TAU),
+            speed: rand(0.8, 2.0),
+            delay: t * 0.42,
+            ground: false
+          });
+        }
+      }
+
+      if (tier < TIERS - 1) {
+        const yb = y0 - tierGap * 0.5;
+        const rb = (rad + TREE_RADIUS * Math.pow(1 - (t + 1 / TIERS), 0.92)) * 0.5;
+        for (let i = 0; i < 150; i++) {
+          const a = rand(0, TAU);
+          const rr = rb * Math.sqrt(Math.random()) * 0.92;
+          const col = starColor();
+          points.push({
+            x: Math.cos(a) * rr,
+            y: yb + rand(-tierGap * 0.4, tierGap * 0.4),
+            z: Math.sin(a) * rr,
+            h: col[0],
+            s: col[1],
+            l: col[2],
+            size: rand(0.004, 0.008),
+            alpha: rand(0.16, 0.42),
+            phase: rand(0, TAU),
+            speed: rand(0.6, 1.8),
+            delay: t * 0.42,
+            ground: false
+          });
+        }
+      }
+    }
+
+    for (let i = 0; i < 1200; i++) {
+      const t = Math.pow(Math.random(), 0.85);
+      const rr = TREE_RADIUS * Math.pow(1 - t, 0.85) * Math.sqrt(Math.random()) * 0.9;
+      const a = rand(0, TAU);
+      const col = starColor();
+      points.push({
+        x: Math.cos(a) * rr,
+        y: TREE_BOTTOM + t * TREE_HEIGHT,
+        z: Math.sin(a) * rr,
+        h: col[0],
+        s: col[1],
+        l: col[2],
+        size: rand(0.0035, 0.008),
+        alpha: rand(0.12, 0.38),
+        phase: rand(0, TAU),
+        speed: rand(0.5, 1.6),
+        delay: t * 0.42,
+        ground: false
+      });
+    }
+
+    for (let i = 0; i < 110; i++) {
+      points.push({
+        x: rand(-0.016, 0.016),
+        y: rand(TREE_BOTTOM, TREE_BOTTOM + TREE_HEIGHT * 0.96),
+        z: rand(-0.016, 0.016),
+        h: 330,
+        s: 0.1,
+        l: 0.96,
+        size: rand(0.009, 0.02),
+        alpha: rand(0.65, 1.0),
+        phase: rand(0, TAU),
+        speed: rand(0.9, 2.2),
+        delay: 0,
+        ground: false
+      });
+    }
+
+    const RINGS = [0.18, 0.29, 0.41, 0.54, 0.69, 0.86, 1.04];
+    for (let i = 0; i < 1150; i++) {
+      const rr = GROUND_R * Math.pow(Math.random(), 0.72);
+      const a = rand(0, TAU);
+      const col = starColor();
+      points.push({
+        x: Math.cos(a) * rr,
+        y: GROUND_Y + rand(-0.006, 0.006),
+        z: Math.sin(a) * rr,
+        h: col[0],
+        s: col[1] * 0.8,
+        l: col[2],
+        size: rand(0.005, 0.012),
+        alpha: rand(0.35, 0.85) * col[3],
+        phase: rand(0, TAU),
+        speed: rand(0.6, 2.4),
+        delay: 0,
+        ground: true
+      });
+    }
+
+    for (let i = 0; i < 1100; i++) {
+      const rr = GROUND_R * Math.sqrt(Math.random());
+      const a = rand(0, TAU);
+      const col = starColor();
+      points.push({
+        x: Math.cos(a) * rr,
+        y: GROUND_Y + rand(-0.006, 0.006),
+        z: Math.sin(a) * rr,
+        h: col[0],
+        s: col[1] * 0.6,
+        l: Math.min(0.98, col[2] + 0.03),
+        size: rand(0.004, 0.010),
+        alpha: rand(0.25, 0.62),
+        phase: rand(0, TAU),
+        speed: rand(0.6, 2.2),
+        delay: 0,
+        ground: true
+      });
+    }
+
+    for (const ring of RINGS) {
+      const count = Math.round(210 - ring * 70);
+      for (let i = 0; i < count; i++) {
+        const a = rand(0, TAU);
+        const rr = ring + rand(-0.012, 0.012);
+        const col = starColor();
+        points.push({
+          x: Math.cos(a) * rr,
+          y: GROUND_Y + rand(-0.004, 0.004),
+          z: Math.sin(a) * rr,
+          h: col[0],
+          s: col[1] * 0.5,
+          l: Math.min(0.98, col[2] + 0.06),
+          size: rand(0.007, 0.016),
+          alpha: rand(0.68, 1.0),
+          phase: rand(0, TAU),
+          speed: rand(0.8, 2.6),
+          delay: 0,
+          ground: true
+        });
+      }
+    }
+
+    for (let spoke = 0; spoke < 12; spoke++) {
+      const a0 = (spoke / 12) * TAU + rand(-0.02, 0.02);
+      for (let i = 0; i < 26; i++) {
+        const rr = rand(0.24, GROUND_R);
+        const col = starColor();
+        points.push({
+          x: Math.cos(a0 + rr * 0.06) * rr,
+          y: GROUND_Y + rand(-0.005, 0.005),
+          z: Math.sin(a0 + rr * 0.06) * rr,
+          h: col[0],
+          s: col[1] * 0.4,
+          l: 0.95,
+          size: rand(0.004, 0.009),
+          alpha: rand(0.2, 0.55),
+          phase: rand(0, TAU),
+          speed: rand(0.6, 1.8),
+          delay: 0,
+          ground: true
+        });
+      }
+    }
+
+    for (let i = 0; i < 240; i++) {
+      const rr = Math.pow(Math.random(), 0.8) * 0.36;
+      const a = rand(0, TAU);
+      points.push({
+        x: Math.cos(a) * rr,
+        y: GROUND_Y + rand(-0.003, 0.003),
+        z: Math.sin(a) * rr,
+        h: 330,
+        s: 0.16,
+        l: 0.96,
+        size: rand(0.007, 0.018),
+        alpha: rand(0.6, 1.0),
+        phase: rand(0, TAU),
+        speed: rand(0.8, 2.4),
+        delay: 0,
+        ground: true
+      });
+    }
+  }
+
+  function buildStars() {
+    stars = [];
+    const count = clamp(Math.round((W * H) / 4200), 200, 600);
+    for (let i = 0; i < count; i++) {
+      const big = Math.random() < 0.045;
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H * 0.9,
+        r: big ? rand(2.2, 5.2) : rand(0.35, 1.35),
+        a: big ? rand(0.1, 0.32) : rand(0.18, 0.85),
+        phase: Math.random() * TAU,
+        speed: rand(0.4, 1.6),
+        big
+      });
+    }
+  }
+
+  function makeFlake(anywhere) {
+    const depth = rand(0.2, 1);
+    return {
+      x: Math.random() * W,
+      y: anywhere ? Math.random() * H : rand(-40, -4),
+      depth,
+      r: 0.6 + depth * 2.6,
+      vy: 7 + depth * 26,
+      sway: rand(4, 20) * depth,
+      phase: Math.random() * TAU,
+      speed: rand(0.25, 0.9),
+      a: 0.1 + depth * 0.35
+    };
+  }
+
+  function buildSnow() {
+    const count = clamp(Math.round((W * H) / 10500), 50, 170);
+    snow = [];
+    for (let i = 0; i < count; i++) snow.push(makeFlake(true));
+  }
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    bloom.width = Math.max(1, Math.round(W / 4));
+    bloom.height = Math.max(1, Math.round(H / 4));
+
+    bgCanvas.width = canvas.width;
+    bgCanvas.height = canvas.height;
+    bgCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    cx = W / 2;
+    cy = H * 0.40;
+    scale = Math.min(H * 0.60, W * 1.02);
+
+    buildStars();
+    buildSnow();
+    buildBackground();
+  }
+
+  function project(x, y, z, cosY, sinY, cosT, sinT) {
+    const x1 = x * cosY + z * sinY;
+    const z1 = z * cosY - x * sinY;
+    const y2 = y * cosT - z1 * sinT;
+    const z2 = y * sinT + z1 * cosT;
+    const persp = FOCAL / (CAM_Z - z2);
+    return {
+      sx: cx + x1 * persp * scale + pointerX * 9,
+      sy: cy - y2 * persp * scale,
+      z: z2,
+      k: persp * scale
+    };
+  }
+
+  function buildBackground() {
+    const g = bgCtx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#050209');
+    g.addColorStop(0.55, '#06030b');
+    g.addColorStop(1, '#080311');
+    bgCtx.fillStyle = g;
+    bgCtx.fillRect(0, 0, W, H);
+
+    bgCtx.globalCompositeOperation = 'lighter';
+
+    const neb = bgCtx.createRadialGradient(cx, H * 0.62, 0, cx, H * 0.62, Math.max(W, H) * 0.52);
+    neb.addColorStop(0, 'rgba(120,20,62,0.10)');
+    neb.addColorStop(0.45, 'rgba(70,12,48,0.07)');
+    neb.addColorStop(1, 'rgba(20,4,18,0)');
+    bgCtx.fillStyle = neb;
+    bgCtx.fillRect(0, 0, W, H);
+
+    const baseY = cy + 0.53 * (FOCAL / CAM_Z) * scale;
+    bgCtx.save();
+    bgCtx.translate(cx, baseY);
+    bgCtx.scale(1, 0.26);
+    const groundGlow = bgCtx.createRadialGradient(0, 0, 0, 0, 0, scale * 1.15);
+    groundGlow.addColorStop(0, 'rgba(255,170,210,0.13)');
+    groundGlow.addColorStop(0.3, 'rgba(255,90,150,0.12)');
+    groundGlow.addColorStop(0.7, 'rgba(150,40,90,0.04)');
+    groundGlow.addColorStop(1, 'rgba(60,10,40,0)');
+    bgCtx.fillStyle = groundGlow;
+    bgCtx.beginPath();
+    bgCtx.arc(0, 0, scale * 1.15, 0, TAU);
+    bgCtx.fill();
+    bgCtx.restore();
+
+    const spr = getSnowSprite();
+    for (const s of stars) {
+      const size = s.r * 7;
+      bgCtx.globalAlpha = s.a * (s.big ? 0.55 : 0.7);
+      bgCtx.drawImage(spr, s.x - size / 2, s.y - size / 2, size, size);
+    }
+    bgCtx.globalAlpha = 1;
+    bgCtx.globalCompositeOperation = 'source-over';
+  }
+
+  function drawBackground(t) {
+    ctx.drawImage(bgCanvas, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+
+    const spr = getSnowSprite();
+    for (let i = 0; i < stars.length; i += 2) {
+      const s = stars[i];
+      const tw = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+      const al = s.a * tw * 0.5;
+      if (al < 0.03) continue;
+      const size = s.r * 7;
+      ctx.globalAlpha = al;
+      ctx.drawImage(spr, s.x - size / 2, s.y - size / 2, size, size);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function drawGroundRings(t) {
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const cosT = Math.cos(tilt);
+    const sinT = Math.sin(tilt);
+    const radii = [0.32, 0.48, 0.66, 0.86, 1.08];
+
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < radii.length; i++) {
+      const r = radii[i];
+      ctx.beginPath();
+      for (let s = 0; s <= 120; s++) {
+        const a = (s / 120) * TAU;
+        const pr = project(Math.cos(a) * r, GROUND_Y, Math.sin(a) * r, cosY, sinY, cosT, sinT);
+        if (s === 0) ctx.moveTo(pr.sx, pr.sy);
+        else ctx.lineTo(pr.sx, pr.sy);
+      }
+      ctx.strokeStyle = `rgba(255,228,244,${0.09 + 0.025 * Math.sin(t * 0.7 + i)})`;
+      ctx.lineWidth = i === radii.length - 1 ? 1.8 : 1.1;
+      ctx.stroke();
+    }
+
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * TAU;
+      ctx.beginPath();
+      for (let s = 0; s <= 36; s++) {
+        const r = 0.2 + (s / 36) * 0.9;
+        const pr = project(Math.cos(a) * r, GROUND_Y, Math.sin(a) * r, cosY, sinY, cosT, sinT);
+        if (s === 0) ctx.moveTo(pr.sx, pr.sy);
+        else ctx.lineTo(pr.sx, pr.sy);
+      }
+      ctx.strokeStyle = 'rgba(255,214,238,0.045)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function drawPoints(t, grow) {
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const cosT = Math.cos(tilt);
+    const sinT = Math.sin(tilt);
+
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      const gp = p.ground ? clamp(grow / 0.7, 0, 1) : clamp((grow - p.delay) / 0.58, 0, 1);
+      if (gp <= 0) continue;
+
+      const rise = smooth(gp);
+      const y = p.ground ? p.y : p.y * rise - 0.03 * (1 - rise);
+      const pr = project(p.x, y, p.z, cosY, sinY, cosT, sinT);
+      if (pr.sx < -30 || pr.sx > W + 30 || pr.sy < -30 || pr.sy > H + 30) continue;
+
+      const tw = 0.5 + 0.5 * Math.sin(t * p.speed + p.phase);
+      const size = p.size * pr.k * (0.85 + 0.5 * tw);
+      if (size < 0.35) continue;
+
+      const alpha = p.alpha * rise * (0.55 + 0.45 * tw);
+      ctx.globalAlpha = Math.min(1, alpha);
+      ctx.drawImage(hueSprite(p.h, p.s, p.l), pr.sx - size / 2, pr.sy - size / 2, size, size);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function heartPath(s) {
+    ctx.beginPath();
+    ctx.moveTo(0, s * 0.38);
+    ctx.bezierCurveTo(-s * 0.98, -s * 0.12, -s * 0.56, -s * 0.88, 0, -s * 0.4);
+    ctx.bezierCurveTo(s * 0.56, -s * 0.88, s * 0.98, -s * 0.12, 0, s * 0.38);
+    ctx.closePath();
+  }
+
+  function drawHeart(t, grow) {
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const cosT = Math.cos(tilt);
+    const sinT = Math.sin(tilt);
+    const pr = project(0, TREE_BOTTOM + TREE_HEIGHT + 0.045, 0, cosY, sinY, cosT, sinT);
+    const appear = clamp((grow - 0.62) / 0.38, 0, 1);
+    if (appear <= 0) return;
+
+    const pulse = 1 + 0.06 * Math.sin(t * 2.3);
+    const s = scale * 0.058 * pulse * appear;
+
+    ctx.globalCompositeOperation = 'lighter';
+
+    const g = ctx.createRadialGradient(pr.sx, pr.sy, 0, pr.sx, pr.sy, s * 2.8);
+    g.addColorStop(0, `rgba(255,238,248,${0.4 * appear})`);
+    g.addColorStop(0.25, `rgba(255,150,200,${0.22 * appear})`);
+    g.addColorStop(0.62, `rgba(255,70,140,${0.08 * appear})`);
+    g.addColorStop(1, 'rgba(255,40,120,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(pr.sx, pr.sy, s * 2.8, 0, TAU);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(pr.sx, pr.sy);
+    ctx.shadowColor = 'rgba(255,120,180,1)';
+    ctx.shadowBlur = s * 2.1;
+    heartPath(s);
+    const fill = ctx.createRadialGradient(0, -s * 0.12, 0, 0, 0, s * 1.15);
+    fill.addColorStop(0, `rgba(255,255,255,${0.98 * appear})`);
+    fill.addColorStop(0.34, `rgba(255,214,236,${0.92 * appear})`);
+    fill.addColorStop(0.72, `rgba(255,128,186,${0.62 * appear})`);
+    fill.addColorStop(1, `rgba(255,64,142,${0.3 * appear})`);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.shadowBlur = s * 1.1;
+    ctx.strokeStyle = `rgba(255,250,253,${0.95 * appear})`;
+    ctx.lineWidth = Math.max(1.2, s * 0.045);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function drawSnow(t, dt) {
+    const spr = getSnowSprite();
+    ctx.globalCompositeOperation = 'source-over';
+    for (const f of snow) {
+      f.y += f.vy * dt * 60;
+      f.x += (Math.sin(t * f.speed + f.phase) * f.sway + 3) * dt * 60;
+      if (f.y > H + 20) Object.assign(f, makeFlake(false));
+      if (f.x < -30) f.x = W + 20;
+      if (f.x > W + 30) f.x = -20;
+      const s = f.r * 3.6;
+      ctx.globalAlpha = f.a;
+      ctx.drawImage(spr, f.x - s / 2, f.y - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function spawnWish() {
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const cosT = Math.cos(tilt);
+    const sinT = Math.sin(tilt);
+    for (let i = 0; i < 54; i++) {
+      const p = points[(Math.random() * points.length) | 0];
+      if (p.ground && Math.random() < 0.55) continue;
+      const pr = project(p.x * 1.06, p.y, p.z * 1.06, cosY, sinY, cosT, sinT);
+      const ang = rand(0, TAU);
+      const spd = rand(14, 96);
+      wishes.push({
+        x: pr.sx,
+        y: pr.sy,
+        vx: Math.cos(ang) * spd * 0.6,
+        vy: -rand(30, 160),
+        life: rand(1.1, 2.1),
+        size: rand(2.0, 5.0),
+        hue: Math.random() < 0.6 ? 330 : 300,
+        light: rand(0.85, 1.0)
+      });
+    }
+    flash = 0.7;
+    hint.classList.add('fade');
+  }
+
+  function drawWishes(dt) {
+    if (!wishes.length) return;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = wishes.length - 1; i >= 0; i--) {
+      const w = wishes[i];
+      w.life -= dt;
+      if (w.life <= 0) {
+        wishes.splice(i, 1);
+        continue;
+      }
+      w.vy += 52 * dt;
+      w.vx *= 0.992;
+      w.x += w.vx * dt;
+      w.y += w.vy * dt;
+      const a = clamp(w.life / 0.7, 0, 1) * 0.9;
+      const spr = hueSprite(w.hue, 0.55, w.light);
+      const s = w.size * 4.2;
+      ctx.globalAlpha = a;
+      ctx.drawImage(spr, w.x - s / 2, w.y - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function applyBloom() {
+    if (bloom.width < 2 || bloom.height < 2) return;
+    bctx.clearRect(0, 0, bloom.width, bloom.height);
+    bctx.filter = 'blur(2.4px)';
+    bctx.drawImage(canvas, 0, 0, bloom.width, bloom.height);
+    bctx.filter = 'none';
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.7 + flash * 0.3;
+    ctx.drawImage(bloom, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  let last = performance.now();
+  let time = 0;
+
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    time += dt;
+
+    if (!dragging) {
+      spinVel += (AUTO_SPIN - spinVel) * Math.min(1, dt * 1.1);
+      rotY += spinVel * dt;
+      tilt += (0.30 + pointerY * 0.06 - tilt) * Math.min(1, dt * 1.4);
+    }
+
+    flash = Math.max(0, flash - dt * 1.8);
+    const grow = clamp((now - START) / 2500, 0, 1);
+
+    drawBackground(time);
+    drawGroundRings(time);
+    drawPoints(time, grow);
+    drawHeart(time, grow);
+    applyBloom();
+    drawSnow(time, dt);
+    drawWishes(dt);
+
+    if (flash > 0.01) {
+      ctx.globalCompositeOperation = 'lighter';
+      const fg = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale * 1.2);
+      fg.addColorStop(0, `rgba(255,190,220,${0.08 * flash})`);
+      fg.addColorStop(0.6, `rgba(255,110,170,${0.03 * flash})`);
+      fg.addColorStop(1, 'rgba(255,60,140,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function onPointerDown(e) {
+    dragging = true;
+    moved = false;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    canvas.classList.add('dragging');
+    canvas.setPointerCapture?.(e.pointerId);
+  }
+
+  function onPointerMove(e) {
+    pointerX = e.clientX / W - 0.5;
+    pointerY = e.clientY / H - 0.5;
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+    rotY += dx * 0.0075;
+    spinVel = clamp(dx * 0.45, -2.6, 2.6);
+    tilt = clamp(tilt + dy * 0.002, 0.14, 0.52);
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    canvas.classList.remove('dragging');
+    canvas.releasePointerCapture?.(e.pointerId);
+    if (!moved) spawnWish();
+    spinVel = clamp(spinVel, -1.4, 1.4);
+  }
+
+  const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+  let luckyCode = null;
+  let toastTimer = 0;
+
+  function makeLucky() {
+    const pool = [];
+    for (let n = 1; n <= 33; n++) pool.push(n);
+    const reds = [];
+    for (let i = 0; i < 6; i++) {
+      reds.push(pool.splice(randInt(0, pool.length - 1), 1)[0]);
+    }
+    reds.sort((a, b) => a - b);
+    const year = String(new Date().getFullYear());
+    return { reds, blue: randInt(1, 16), serial: year + String(randInt(1, 153)).padStart(3, '0') };
+  }
+
+  function encodeLucky(code) {
+    return '#lucky=' + code.reds.join(',') + ';' + code.blue + ';' + code.serial;
+  }
+
+  function readLuckyHash() {
+    const m = location.hash.match(/lucky=([\d,]+);(\d+);(\d{7})/);
+    if (!m) return null;
+    const reds = m[1].split(',').map(Number);
+    const blue = Number(m[2]);
+    if (reds.length !== 6 || new Set(reds).size !== 6) return null;
+    if (!reds.every((n) => Number.isInteger(n) && n >= 1 && n <= 33)) return null;
+    if (!Number.isInteger(blue) || blue < 1 || blue > 16) return null;
+    return { reds: reds.sort((a, b) => a - b), blue, serial: m[3] };
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function renderLucky(rolling) {
+    ballsEl.textContent = '';
+    luckyCode.reds.forEach((n, i) => {
+      const ball = document.createElement('div');
+      ball.className = rolling ? 'ball roll' : 'ball';
+      if (rolling) ball.style.animationDelay = i * 55 + 'ms';
+      const num = document.createElement('span');
+      num.textContent = pad2(n);
+      ball.appendChild(num);
+      ballsEl.appendChild(ball);
+    });
+
+    const plus = document.createElement('div');
+    plus.className = 'ball plus';
+    plus.textContent = '+';
+    plus.setAttribute('aria-hidden', 'true');
+    ballsEl.appendChild(plus);
+
+    const blue = document.createElement('div');
+    blue.className = rolling ? 'ball blue roll' : 'ball blue';
+    if (rolling) blue.style.animationDelay = '380ms';
+    const bnum = document.createElement('span');
+    bnum.textContent = pad2(luckyCode.blue);
+    blue.appendChild(bnum);
+    ballsEl.appendChild(blue);
+
+    serialEl.textContent = '第 ' + luckyCode.serial + ' 期';
+    luckyEl.setAttribute('aria-label', '幸运彩票码 ' + luckyText());
+  }
+
+  function luckyText() {
+    return luckyCode.reds.map(pad2).join(' ') + ' + ' + pad2(luckyCode.blue);
+  }
+
+  function setLucky(code, rolling, syncHash) {
+    luckyCode = code;
+    renderLucky(rolling);
+    if (syncHash) {
+      try {
+        history.replaceState(null, '', encodeLucky(code));
+      } catch (err) {
+        location.hash = encodeLucky(code).slice(1);
+      }
+    }
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2300);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.top = '-1000px';
+      document.body.appendChild(area);
+      area.select();
+      area.setSelectionRange(0, text.length);
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      document.body.removeChild(area);
+      ok ? resolve() : reject(new Error('copy failed'));
+    });
+  }
+
+  function luckyMessage(withUrl) {
+    let msg = '🎄 今夜幸运号码（第 ' + luckyCode.serial + ' 期）\n' + luckyText();
+    if (withUrl && /^https?:/.test(location.protocol)) msg += '\n这棵树：' + location.href;
+    return msg;
+  }
+
+  rerollBtn.addEventListener('click', () => {
+    setLucky(makeLucky(), true, true);
+    showToast('换了一组 · 愿好运常来');
+  });
+
+  copyBtn.addEventListener('click', () => {
+    copyText(luckyMessage(true))
+      .then(() => showToast('号码已复制'))
+      .catch(() => showToast('复制失败，请长按号码'));
+  });
+
+  shareBtn.addEventListener('click', () => {
+    const canNative = navigator.share && /^https?:/.test(location.protocol);
+    if (canNative) {
+      navigator.share({
+        title: '圣诞树 · 今夜幸运号码',
+        text: '送你一棵圣诞树，今夜幸运号码是 ' + luckyText(),
+        url: location.href
+      }).catch((err) => {
+        if (err && err.name === 'AbortError') return;
+        copyText(location.href).then(() => showToast('链接已复制')).catch(() => showToast('请手动复制地址栏链接'));
+      });
+      return;
+    }
+    copyText(location.href)
+      .then(() => showToast('链接已复制，发给 TA 吧'))
+      .catch(() => showToast('请手动复制地址栏链接'));
+  });
+
+  if (!(navigator.share && /^https?:/.test(location.protocol))) {
+    shareBtn.textContent = /^https?:/.test(location.protocol) ? '复制链接' : '分享这棵树';
+  }
+
+  setLucky(readLuckyHash() || makeLucky(), false, true);
+
+  window.addEventListener('resize', resize);
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+
+  buildScene();
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
