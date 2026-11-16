@@ -4,6 +4,8 @@
 
 树脚还会生成一组「幸运彩票码」（双色球 6 红 + 1 蓝），可以重编、复制，并把号码写进链接一起分享。
 
+线上体验：<https://yuchi-gif.github.io/xmas-tree/>
+
 ![预览](preview.png)
 
 ## 文件
